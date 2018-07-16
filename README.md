@@ -15,7 +15,7 @@ the far end.
 
 Carriers are grouped into a *channel* which has a name, and some control interface.
 
-Channels are hosted on a *server*
+Channels are hosted on a *server*.
 
 ##  Entities in detail
 
@@ -37,16 +37,23 @@ A **channel** is a named grouping of carriers.  A server may support one or more
  - combining with a server IP address and port, should be possible to make a channel URI
 
  Given that a channel can have multiple carriers, the receiving end will need to differentiate them when making them audible by
- using tone offsets or something similar, so indvidual signals can be recognised.
+ using tone offsets or something similar, so indvidual signals can be recognised. Note that a channel originates at a hub.
 
-A **server** can receive and publish one or more channels.
+A **hub** can receive and publish one or more channels by communicating with nodes and (later) possibly other hubs.
+There is no hub - to -hub routing mechanism proposed here yet.
+
+A **node** can register interest in channels with a hub and add carriers to a channel.
 
 ## How this works
 
-A client would connect to a server and probably get an enumeration of channels.  The client can then
+A spoke would connect to a hub and probably get an enumeration of channels.  The client can then
 subscribe to a channel to receive carrier packets related to that channel.  The subscription results in time
 sync being established for that channel, and then the client will receive packets relating to that channel.  The client
 can also transmit packets relating to that channel based on the time sync.
+
+There can be multiple carriers per channel, so it is up to the client to make sense of these.
+
+
 
 
 
@@ -58,6 +65,8 @@ necessary time offsets from the start of the stream.
 There is a facility to communicate basic key/value ascii pairs.
 
 Generally, top bit set means that is a control value.
+
+multi-byte values are big-endian
 
 ## Listen
 LI (Listen) == 0x80
