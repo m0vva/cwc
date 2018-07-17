@@ -10,8 +10,10 @@ I'm looking for a way to transmit hand-keyed and keyer-keyed morse over the
 internet.  Ideally, this is via a toggled line on a serial port or software
 generated from morse keying or morse detecting software.
 
-This becomes generated *carrier* that is a bunch of on and off events, with strict timing maintained so it can be re-constructed at
-the far end.
+This becomes generated *carrier* that is a bunch of on and off events, 
+with strict timing maintained so it can be re-constructed at
+the far end.  Packers of on/off events are sent via UDP, as is this whole protocol.  Data
+can get lost, but we can deal with that.
 
 Carriers are grouped into a *channel* which has a name, and some control interface.
 
@@ -22,11 +24,11 @@ Channels are hosted on a *server*.
 Here is some more detail on what the logical parts are:
 
 A **carrier** is a set of bit on/off events for a single bit.  A carrier has:
- - an id (which is used to differentiate different bits in a stream)
+ - an id (which is used to differentiate different carrier in a channel)
  - a series of on and off events and control messages
- - some sort of source id (like a string callsign)
+ - some sort of sender id (like a callsign)
 
-Note that a carrier should always end up off, not stuck on.  That means the way we collect and send bit data has to
+Note that a carrier should always end up off, not stuck on.  So timed on/off events must always end with an off.  That means the way we collect and send bit data has to
 take that into account.
 
 A **channel** is a named grouping of carriers.  A server may support one or more channels.  A channel has:
@@ -54,10 +56,12 @@ can also transmit packets relating to that channel based on the time sync.
 There can be multiple carriers per channel, so it is up to the client to make sense of these.
 
 
-
-
-
 ## Protocol
+
+## TODO
+More protocol tidy up
+
+### Channel access
 
 The protocol is composed of packets containing timed on and off information for a bit, with the
 necessary time offsets from the start of the stream.
@@ -68,22 +72,64 @@ Generally, top bit set means that is a control value.
 
 multi-byte values are big-endian
 
-## Listen
-LI (Listen) == 0x80
+## Enumerate channels
 
-0x80, port_number, 0x00 (off) | 0x01 (on)
+Enumerate channels at this hub
+
+EN (Enumerate) == 0x90
+
+## Enumerate list
+
+Response to enumerate channels available:
+
+EL (Enumerate List) == 0xA0
+
+0x91, channel_no (2 bytes), channel_no (2 bytes), ... , 0x00
+
+## Server time sync
+
+There are a pair of time sync events to allow nodes and hubs to calculate lateny in the circuit and adjust for
+it if needed.
+
+### Initiate time sync
+0x92 current_time [timestamp size]
+
+### Respond to time sync
+0x93 given_time_or 0 (from prev 0x91) [8 byte, unix nanoseconds], current_time [8byte unix nanoseconds]
+
+
+## Listen to channel
+LI (Listen) == 0x94
+
+0x94, channel_no (2 bytes), callsign/id (utf8 string), 0x00, [ pass_token, 0x00 ]
+
+## Carrier key return
+Send from a hub to provide carrier key after listening
+
+0x95, channel_no (2 byte), carrier_key (2 bytes)
+
+## Unlisten
+UL (unlisten) = 0x96
+
+0x96, carrier_key (4 bytes)
+
 
 ### Key-value pairs
-
 KV (Key Value) == 0x81:
 
-0x81, length (bytes), bytes, length, value_ascii...
+0x80, channel_no (2 bytes), carrier_key (2 bytes), key(utf-8 string), 0x00, value(utf-8 string), 0x00
 
-### Bit/stream events
+Used key-value pairs:
+DE callsign of sender
+IN general info
+
+
+### carrier events
 
 BE (Bit Event: timed) == 0x82:
 
-0x82, flags(1 byte), 4-byte-timestamp (ms) from send start, event_type
+0x8
+2, channel_key (2 bytes), carrier_key (2 bytes), 8-byte-timestamp (ns), event_type [, ...]
 
 event_type is:
 0x00: bit off
@@ -92,10 +138,10 @@ event_type is:
 flags: bitwise flags
 Not currently used
 
-timestamp=0 for converstation start start
-
 ## Stream Semantics
-0x80 listen (port) <-- listening at source IP:port
+0x94 listen (port) <-- listening at source IP:port
+# carrier key is return with 0x95
+0x81 sending
 0x82 start stream -- sets time zero for (fromip, fromport)
 0x83 end stream  -- stop keeping time
 
@@ -103,24 +149,18 @@ timestamp=0 for converstation start start
 
 1. Establish a listener socket and send LI (eg. port 0x4001)
 
-0x80, 0x40, 0x01, 0x01
+0x94, 0x00, 0x40, G, 0, W, C, Z, 0x00
 
-2. Set callsign KV pair (optional)
+2. hub returns channel and carrier key: 0x95 0x00, 0x40, 0x00, 0x01
 
-0x81, 0x02, D, E, 0x06, G, 0, W, C, Z
+3. hub stats sending carriers for the channel eg. 
+
 
 3. Send something
 
 This sends a dit at about 25wpm
-0x82, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
-0x82 0x00, 0x00, 0x00, 0x00, 0x30, 0x00
-
-
-
-
-
-
-
+0x82, 0x00, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x01, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x05, 0x0, 0x00
+key   flags ^---------timestamp(ns)--------------^   on   ^---------timestamp(ns)--------------^   off
 
 ## Questions
 
