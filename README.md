@@ -2,13 +2,18 @@
 
 ## What
 
-bit-over-ip: Low level protocol for sending timed on-off state over TCP/IP or UDP/IP
+bit-over-ip: Low level protocol for sending timed on-off state over TCP/IP or UDP/IP.
 
 ## Why
 
-I'm looking for a way to transmit hand-keyed and keyer-keyed morse over the
+I'm looking for a way to transmit hand-keyed and keyer-keyed morse (telegraph-style)over the
 internet.  Ideally, this is via a toggled line on a serial port or software
-generated from morse keying or morse detecting software.
+generated from morse keying or morse (tone) detecting software.
+
+## The model in brief
+
+A *hub* can host one or more *channels*, each of which can contain multiple *carriers*.  A *node* can exchange
+messages with a *hub* to interact with its channels. 
 
 This becomes generated *carrier* that is a bunch of on and off events, 
 with strict timing maintained so it can be re-constructed at
@@ -58,8 +63,7 @@ There can be multiple carriers per channel, so it is up to the client to make se
 
 ## Protocol
 
-## TODO
-More protocol tidy up
+This protocol is designed to work okay with UDP or similar lossy protocol.
 
 ### Channel access
 
@@ -80,9 +84,9 @@ EN (Enumerate) == 0x90
 
 ## Enumerate list
 
-Response to enumerate channels available:
+Response to enumerate channels available, responding with a list of channel numbers.
 
-EL (Enumerate List) == 0xA0
+EL (Enumerate List) == 0x91
 
 0x91, channel_no (2 bytes), channel_no (2 bytes), ... , 0x00
 
@@ -128,8 +132,7 @@ IN general info
 
 BE (Bit Event: timed) == 0x82:
 
-0x8
-2, channel_key (2 bytes), carrier_key (2 bytes), 8-byte-timestamp (ns), event_type [, ...]
+0x82, channel_key (2 bytes), carrier_key (2 bytes), 8-byte-timestamp (ns), event_type [, ...]
 
 event_type is:
 0x00: bit off
@@ -159,9 +162,10 @@ Not currently used
 3. Send something
 
 This sends a dit at about 25wpm
+```
 0x82, 0x00, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x01, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x05, 0x0, 0x00
 key   flags ^---------timestamp(ns)--------------^   on   ^---------timestamp(ns)--------------^   off
-
+```
 ## Questions
 
 How about direct udp-udp connections. Why not?
