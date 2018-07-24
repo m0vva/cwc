@@ -88,7 +88,7 @@ Response to enumerate channels available, responding with a list of channel numb
 
 EL (Enumerate List) == 0x91
 
-0x91, channel_no (2 bytes), channel_no (2 bytes), ... , 0x00
+0x91, channel_no (2 bytes), channel_no (2 bytes), ... , 0x00, 0x00
 
 ## Server time sync
 
@@ -107,7 +107,7 @@ LI (Listen) == 0x94
 
 0x94, channel_no (2 bytes), callsign/id (utf8 string), 0x00, [ pass_token, 0x00 ]
 
-## Carrier key return
+## Carrier key return or listen confirm
 Send from a hub to provide carrier key after listening
 
 0x95, channel_no (2 byte), carrier_key (2 bytes)
@@ -115,7 +115,7 @@ Send from a hub to provide carrier key after listening
 ## Unlisten
 UL (unlisten) = 0x96
 
-0x96, carrier_key (4 bytes)
+0x96, channel_no (2 bytes), carrier_key (2 bytes)
 
 
 ### Key-value pairs
@@ -141,33 +141,57 @@ event_type is:
 flags: bitwise flags
 Not currently used
 
-## Stream Semantics
-0x94 listen (port) <-- listening at source IP:port
-# carrier key is return with 0x95
-0x81 sending
-0x82 start stream -- sets time zero for (fromip, fromport)
-0x83 end stream  -- stop keeping time
+## Stream Semantics -> sample interaction
+```
+# basic setup of chnnel
+(optional) node sends 0x92 timesync
+(optional) hub sends  0x93 timesync response
+node sends 0x90 enumerate channels
+hub sends 0x91 channel info responses
+
+# listen to channel
+node sends 0x94 listen to channel
+hub sends back 0x95 carrier key
+
+# send/recieve channel info
+node sends 0x82 bit events
+hub sends 0x82 bit events
+...
+
+# unlisten
+node sends 0x96 unlisten to channel with channel key
+
+```
+
 
 ## Example converstation 
 
-1. Establish a listener socket and send LI (eg. port 0x4001)
-
-0x94, 0x00, 0x40, G, 0, W, C, Z, 0x00
-
-2. hub returns channel and carrier key: 0x95 0x00, 0x40, 0x00, 0x01
-
-3. hub stats sending carriers for the channel eg. 
-
-
-3. Send something
-
-This sends a dit at about 25wpm
+### Initial time sync
 ```
-0x82, 0x00, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x01, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x05, 0x0, 0x00
-key   flags ^---------timestamp(ns)--------------^   on   ^---------timestamp(ns)--------------^   off
+node: 92 15 44 64 52 e0 a9 50 05
+hub: 93 15 44 64 52 e0 a9 50 05 15 44 64 52 e0 a9 90 05
 ```
-## Questions
 
-How about direct udp-udp connections. Why not?
+## Get channels
+```
+node: 90
+hub: 91 00 01 00 02 00 11 00 00
+hub: 91 ea bb cc dd ee ee 00 00
+```
+
+## listen to a channel
+```
+node: 94 00 01 'G' '0' 'W' 'C' 'Z' 00
+hub: 95 00 01 00 02
+```
+# send a dit at 25 wpm
+```
+node: 15 00 01 00 02 44 64 52 e0 c9 50 05 01 02 44 64 52 e0 c9 55 05 00
+```
+
+# unlisten channel
+```
+hub: 96 00 01 00 02
+```
 
 
