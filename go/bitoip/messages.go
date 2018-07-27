@@ -65,17 +65,22 @@ type BitEvent uint8
 const (
 	BitOn BitEvent = 0x01
 	BitOff BitEvent = 0x00
+	LastEvent BitEvent = 0x80 // high bit set to indicate last one
 )
 
 // slightly random
-const MaxBitEvents = (MaxMessageSizeInBytes - 10) / 10
+const MaxBitEvents = (MaxMessageSizeInBytes - 14) / 5
+const MaxNsPerCarrierEvent = 2 ^ 32
 
+// Offset allows for about 4 seconds of offset
 type CarrierBitEvent struct {
-	timestamp uint64
+	timeOffset uint32
 	bitEvent BitEvent
 }
 
 type CarrierEventPayload struct {
 	channel ChannelId
-	carrierKey [MaxBitEvents]CarrierKey
+	carrierKey CarrierKey
+	startTimeStamp uint64
+	bitEvents [MaxBitEvents]CarrierBitEvent
 }

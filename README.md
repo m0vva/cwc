@@ -132,7 +132,7 @@ IN general info
 
 BE (Bit Event: timed) == 0x82:
 
-0x82, channel_key (2 bytes), carrier_key (2 bytes), 8-byte-timestamp (ns), event_type [, ...]
+0x82, channel_key (2 bytes), carrier_key (2 bytes), start-8-byte-timestamp (ns), [(time-offset-ns (4 byte), event_type), ...]
 
 event_type is:
 0x00: bit off
@@ -186,7 +186,7 @@ hub: 95 00 01 00 02
 ```
 # send a dit at 25 wpm
 ```
-node: 15 00 01 00 02 44 64 52 e0 c9 50 05 01 02 44 64 52 e0 c9 55 05 00
+node: 15 00 01 00 02 44 64 52 e0 c9 50 05 00 00 00 00 01 00 00 05 00 00
 ```
 
 # unlisten channel
