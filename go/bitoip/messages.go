@@ -1,13 +1,22 @@
 package bitoip
 
+import (
+	"encoding/binary"
+	"bytes"
+	"log"
+	"reflect"
+	"fmt"
+)
+
 // conservative UDP payload in bytes
 const MaxMessageSizeInBytes = 400
+var byteOrder = binary.BigEndian
 
 type (
-	MessageVerb = uint8
+	MessageVerb = byte
 	ChannelId = uint16
 	CarrierKey = uint16
-	Callsign = string
+	Payload = interface {}
 )
 
 const (
@@ -24,6 +33,7 @@ const (
 
 // List of Channels
 const MaxChannelsPerMessage int = (MaxMessageSizeInBytes - 1) / 2
+
 type ListChannelsPayload struct {
 	channels [MaxChannelsPerMessage]uint16
 }
@@ -40,7 +50,7 @@ type TimeSyncResponsePayload struct {
 
 type ListenRequestPayload struct {
 	channel ChannelId
-	callsign string
+	callsign [16]byte
 }
 
 type ListenConfirmPayload struct {
@@ -56,8 +66,8 @@ type UnlistenPayload struct {
 type KeyValuePayload struct {
 	channel ChannelId
 	carrierKey CarrierKey
-	key string
-	value string
+	key [8]byte
+	value [16]byte
 }
 
 type BitEvent uint8
@@ -83,4 +93,39 @@ type CarrierEventPayload struct {
 	carrierKey CarrierKey
 	startTimeStamp uint64
 	bitEvents [MaxBitEvents]CarrierBitEvent
+}
+
+var messagePayload = map[MessageVerb]reflect.Type {
+	EnumerateChannels: nil,
+	ListChannels: reflect.TypeOf(ListChannelsPayload{}),
+	TimeSync: reflect.TypeOf(TimeSyncPayload{}),
+	TimeSyncResponse: reflect.TypeOf(TimeSyncResponsePayload{}),
+	ListenRequest: reflect.TypeOf(ListenRequestPayload{}),
+	ListenConfirm: reflect.TypeOf(ListenConfirmPayload{}),
+	Unlisten: reflect.TypeOf(UnlistenPayload{}),
+	KeyValue: reflect.TypeOf(KeyValuePayload{}),
+	CarrierEvent: reflect.TypeOf(CarrierEventPayload{}),
+}
+
+
+func EncodePayload(verb MessageVerb, payload Payload) []byte {
+	buf := new(bytes.Buffer)
+	buf.WriteByte(verb)
+	err := binary.Write(buf, byteOrder, payload)
+	if err != nil {
+		log.Fatalf("Bad message encode for %T %v", payload, err)
+	}
+	return buf.Bytes()
+}
+
+func DecodePacket(lineBuffer []byte) (MessageVerb, interface{}) {
+	verb := MessageVerb(lineBuffer[0])
+	payload := messagePayload[verb]
+	buffer := bytes.NewReader(lineBuffer)
+
+	binary.Read(buffer, byteOrder, &payload)
+
+	fmt.Println(verb, payload)
+
+	return verb, payload
 }
