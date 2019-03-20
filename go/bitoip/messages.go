@@ -111,9 +111,11 @@ var messagePayload = map[MessageVerb]reflect.Type {
 func EncodePayload(verb MessageVerb, payload Payload) []byte {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(verb)
-	err := binary.Write(buf, byteOrder, payload)
-	if err != nil {
-		log.Fatalf("Bad message encode for %T %v", payload, err)
+	if payload != nil {
+		err := binary.Write(buf, byteOrder, payload)
+		if err != nil {
+			log.Fatalf("Bad message encode for %T %v", payload, err)
+		}
 	}
 	return buf.Bytes()
 }
