@@ -36,39 +36,39 @@ const (
 const MaxChannelsPerMessage int = (MaxMessageSizeInBytes - 1) / 2
 
 type ListChannelsPayload struct {
-	channels [MaxChannelsPerMessage]uint16
+	Channels [MaxChannelsPerMessage]uint16
 }
 
 // TimeSync
 type TimeSyncPayload struct {
-	currentTime uint64
+	CurrentTime uint64
 }
 
 type TimeSyncResponsePayload struct {
-	givenTime uint64
-	currentTime uint64
+	GivenTime uint64
+	CurrentTime uint64
 }
 
 type ListenRequestPayload struct {
-	channel ChannelIdType
-	callsign [16]byte
+	Channel ChannelIdType
+	Callsign [16]byte
 }
 
 type ListenConfirmPayload struct {
-	channel ChannelIdType
-	carrierKey CarrierKeyType
+	Channel ChannelIdType
+	CarrierKey CarrierKeyType
 }
 
 type UnlistenPayload struct {
-	channel ChannelIdType
-	carrierKey CarrierKeyType
+	Channel ChannelIdType
+	CarrierKey CarrierKeyType
 }
 
 type KeyValuePayload struct {
-	channel ChannelIdType
-	carrierKey CarrierKeyType
-	key [8]byte
-	value [16]byte
+	Channel ChannelIdType
+	CarrierKey CarrierKeyType
+	Key [8]byte
+	Value [16]byte
 }
 
 type BitEvent uint8
@@ -147,7 +147,12 @@ func DecodePacket(lineBuffer []byte) (MessageVerb, interface{}) {
 
 	}
 	buffer := bytes.NewReader(lineBuffer[1:])
-	err := binary.Read(buffer, byteOrder, payloadObj)
-
+	if payloadObj != nil {
+		err := binary.Read(buffer, byteOrder, payloadObj)
+		if (err != nil) {
+			log.Fatalf("Error reading message for %d", verb)
+			return verb, nil
+		}
+	}
 	return verb, payloadObj
 }
