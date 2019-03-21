@@ -5,17 +5,18 @@ import (
 	"bytes"
 	"log"
 	"reflect"
-	"fmt"
-)
+	)
 
 // conservative UDP payload in bytes
 const MaxMessageSizeInBytes = 400
+const CallsignSize = 16
 var byteOrder = binary.BigEndian
 
 type (
 	MessageVerb = byte
-	ChannelId = uint16
-	CarrierKey = uint16
+	ChannelIdType = uint16
+	CarrierKeyType = uint16
+	Callsign = [CallsignSize]byte
 	Payload = interface {}
 )
 
@@ -49,23 +50,23 @@ type TimeSyncResponsePayload struct {
 }
 
 type ListenRequestPayload struct {
-	channel ChannelId
+	channel ChannelIdType
 	callsign [16]byte
 }
 
 type ListenConfirmPayload struct {
-	channel ChannelId
-	carrierKey CarrierKey
+	channel ChannelIdType
+	carrierKey CarrierKeyType
 }
 
 type UnlistenPayload struct {
-	channel ChannelId
-	carrierKey CarrierKey
+	channel ChannelIdType
+	carrierKey CarrierKeyType
 }
 
 type KeyValuePayload struct {
-	channel ChannelId
-	carrierKey CarrierKey
+	channel ChannelIdType
+	carrierKey CarrierKeyType
 	key [8]byte
 	value [16]byte
 }
@@ -84,15 +85,15 @@ const MaxNsPerCarrierEvent = 2 ^ 32
 
 // Offset allows for about 4 seconds of offset
 type CarrierBitEvent struct {
-	timeOffset uint32
-	bitEvent BitEvent
+	TimeOffset uint32
+	BitEvent BitEvent
 }
 
 type CarrierEventPayload struct {
-	channel ChannelId
-	carrierKey CarrierKey
-	startTimeStamp uint64
-	bitEvents [MaxBitEvents]CarrierBitEvent
+	Channel ChannelIdType
+	CarrierKey CarrierKeyType
+	StartTimeStamp uint64
+	BitEvents [MaxBitEvents]CarrierBitEvent
 }
 
 var messagePayload = map[MessageVerb]reflect.Type {
@@ -122,12 +123,31 @@ func EncodePayload(verb MessageVerb, payload Payload) []byte {
 
 func DecodePacket(lineBuffer []byte) (MessageVerb, interface{}) {
 	verb := MessageVerb(lineBuffer[0])
-	payload := messagePayload[verb]
-	buffer := bytes.NewReader(lineBuffer)
+	var payloadObj interface{} = nil
 
-	binary.Read(buffer, byteOrder, &payload)
+	switch verb {
+	case EnumerateChannels:
+		break;
+	case ListChannels:
+		payloadObj = new(ListChannelsPayload)
+	case TimeSync:
+		payloadObj = new(TimeSyncPayload)
+	case TimeSyncResponse:
+		payloadObj = new(TimeSyncResponsePayload)
+	case ListenRequest:
+		payloadObj = new(ListenRequestPayload)
+	case ListenConfirm:
+		payloadObj = new(ListenConfirmPayload)
+	case Unlisten:
+		payloadObj = new(UnlistenPayload)
+	case KeyValue:
+		payloadObj = new(KeyValuePayload)
+	case CarrierEvent:
+		payloadObj = new(CarrierEventPayload)
 
-	fmt.Println(verb, payload)
+	}
+	buffer := bytes.NewReader(lineBuffer[1:])
+	err := binary.Read(buffer, byteOrder, payloadObj)
 
-	return verb, payload
+	return verb, payloadObj
 }
