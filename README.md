@@ -2,27 +2,29 @@
 
 ## What
 
-bit-over-ip: Low level protocol for sending timed on-off state over TCP/IP or UDP/IP.
+bit-over-ip: Low level byte-oriented protocol for sending timed on-off state over IP.
 
 ## Why
 
-I'm looking for a way to transmit hand-keyed and keyer-keyed morse (telegraph-style)over the
-internet.  Ideally, this is via a toggled line on a serial port or software
-generated from morse keying or morse (tone) detecting software.
+I'm looking for a way to transmit hand-keyed and keyer-keyed morse (telegraph-style) over the
+internet or maybe even over other amateur IP services.
+
+Ideally, this is via a toggled line on a serial port or software generated from morse keying or morse (tone) detecting software.
 
 ## The model in brief
 
-A *hub* can host one or more *channels*, each of which can contain multiple *carriers*.  A *node* can exchange
-messages with a *hub* to interact with its channels. 
+A *reflector* can host one or more *channels*, each of which can contain multiple *carriers*.  A *station* can exchange
+messages with a *reflector* to interact with its channels. 
 
 This becomes generated *carrier* that is a bunch of on and off events, 
 with strict timing maintained so it can be re-constructed at
-the far end.  Packers of on/off events are sent via UDP, as is this whole protocol.  Data
-can get lost, but we can deal with that.
+the far end.  Packets of on/off events are sent via UDP, as is this whole protocol.
+
+Data can get lost, but we can deal with that.
 
 Carriers are grouped into a *channel* which has a name, and some control interface.
 
-Channels are hosted on a *server*.
+Channels are hosted on a *reflector*.
 
 ##  Entities in detail
 
@@ -44,22 +46,28 @@ A **channel** is a named grouping of carriers.  A server may support one or more
  - combining with a server IP address and port, should be possible to make a channel URI
 
  Given that a channel can have multiple carriers, the receiving end will need to differentiate them when making them audible by
- using tone offsets or something similar, so indvidual signals can be recognised. Note that a channel originates at a hub.
+ using tone offsets or something similar, so indvidual signals can be recognised. Note that a channel originates at a reflector.
 
-A **hub** can receive and publish one or more channels by communicating with nodes and (later) possibly other hubs.
-There is no hub - to -hub routing mechanism proposed here yet.
+A **reflector** can receive and publish one or more channels by communicating with stations and (later) possibly other reflectors.
+There is no reflector-to-station routing mechanism proposed here yet.
 
-A **node** can register interest in channels with a hub and add carriers to a channel.
+A **station** can register interest in channels with a reflector and add carriers to a channel.
 
 ## How this works
 
-A spoke would connect to a hub and probably get an enumeration of channels.  The client can then
+A station would connect to a reflector and get an enumeration of channels.  The station can then
 subscribe to a channel to receive carrier packets related to that channel.  The subscription results in time
-sync being established for that channel, and then the client will receive packets relating to that channel.  The client
+sync being established for that channel, and then the station will receive packets relating to that channel.  The station
 can also transmit packets relating to that channel based on the time sync.
 
-There can be multiple carriers per channel, so it is up to the client to make sense of these.
+There can be multiple carriers per channel, so it is up to the station to make sense of these.
 
+A station ought to also have a promiscuous mode that will listen to all channels it can hear.  
+
+So the role of a reflector is to:
+* answer and process incoming requests for Channel Lists, Time Sync, Listen and Unlisten requests.
+* Receive and send KeyValue pairs as needed
+* Receive and broadcast incoming Carrier Events to listening stations
 
 ## Protocol
 
@@ -78,7 +86,7 @@ multi-byte values are big-endian
 
 ## Enumerate channels
 
-Enumerate channels at this hub
+Enumerate channels at this reflector
 
 EN (Enumerate) == 0x90
 
@@ -92,7 +100,7 @@ EL (Enumerate List) == 0x91
 
 ## Server time sync
 
-There are a pair of time sync events to allow nodes and hubs to calculate lateny in the circuit and adjust for
+There are a pair of time sync events to allow stations and reflectors to calculate lateny in the circuit and adjust for
 it if needed.
 
 ### Initiate time sync
@@ -108,7 +116,7 @@ LI (Listen) == 0x94
 0x94, channel_no (2 bytes), callsign/id (utf8 string), 0x00, [ pass_token, 0x00 ]
 
 ## Carrier key return or listen confirm
-Send from a hub to provide carrier key after listening
+Send from a reflector to provide carrier key after listening
 
 0x95, channel_no (2 byte), carrier_key (2 bytes)
 
@@ -144,22 +152,22 @@ Not currently used
 ## Stream Semantics -> sample interaction
 ```
 # basic setup of chnnel
-(optional) node sends 0x92 timesync
-(optional) hub sends  0x93 timesync response
-node sends 0x90 enumerate channels
-hub sends 0x91 channel info responses
+(optional) station sends 0x92 timesync
+(optional) reflector sends  0x93 timesync response
+station sends 0x90 enumerate channels
+reflector sends 0x91 channel info responses
 
 # listen to channel
-node sends 0x94 listen to channel
-hub sends back 0x95 carrier key
+station sends 0x94 listen to channel
+reflector sends back 0x95 carrier key
 
 # send/recieve channel info
-node sends 0x82 bit events
-hub sends 0x82 bit events
+station sends 0x82 bit events
+reflector sends 0x82 bit events
 ...
 
 # unlisten
-node sends 0x96 unlisten to channel with channel key
+station sends 0x96 unlisten to channel with channel key
 
 ```
 
@@ -168,30 +176,30 @@ node sends 0x96 unlisten to channel with channel key
 
 ### Initial time sync
 ```
-node: 92 15 44 64 52 e0 a9 50 05
-hub: 93 15 44 64 52 e0 a9 50 05 15 44 64 52 e0 a9 90 05
+station: 92 15 44 64 52 e0 a9 50 05
+reflector: 93 15 44 64 52 e0 a9 50 05 15 44 64 52 e0 a9 90 05
 ```
 
-## Get channels
+## Enumerate channels
 ```
-node: 90
-hub: 91 00 01 00 02 00 11 00 00
-hub: 91 ea bb cc dd ee ee 00 00
+station: 90
+reflector: 91 00 01 00 02 00 11 00 00
+reflector: 91 ea bb cc dd ee ee 00 00
 ```
 
 ## listen to a channel
 ```
-node: 94 00 01 'G' '0' 'W' 'C' 'Z' 00
-hub: 95 00 01 00 02
+station: 94 00 01 'G' '0' 'W' 'C' 'Z' 00
+reflector: 95 00 01 00 02
 ```
 # send a dit at 25 wpm
 ```
-node: 15 00 01 00 02 44 64 52 e0 c9 50 05 00 00 00 00 01 00 00 05 00 00
+station: 15 00 01 00 02 44 64 52 e0 c9 50 05 00 00 00 00 01 00 00 05 00 00
 ```
 
 # unlisten channel
 ```
-hub: 96 00 01 00 02
+reflector: 96 00 01 00 02
 ```
 
 
