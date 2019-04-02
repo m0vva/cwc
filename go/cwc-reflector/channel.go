@@ -30,6 +30,13 @@ func NewChannel(channel_id bitoip.ChannelIdType) Channel {
 	}
 }
 
+func ChannelIds() []uint16 {
+	keys := make([]uint16, 0, len(channels))
+	for k := range channels {
+		keys = append(keys, k)
+	}
+	return keys
+}
 /**
  * get a channel by channel_id
  */
@@ -65,3 +72,5 @@ func (c *Channel) Unsubscribe(address net.Addr) {
 		delete(c.Addresses, subscriber.address.String())
 	}
 }
+
+
