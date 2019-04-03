@@ -1,6 +1,8 @@
 package main
 
-import "net"
+import (
+	"net"
+)
 import (
 	"../bitoip"
 	"time"
@@ -63,14 +65,21 @@ func (c *Channel) Subscribe(address net.Addr) {
 	}
 }
 
-/**
- * unsubscribe from channel
- */
 func (c *Channel) Unsubscribe(address net.Addr) {
 	if subscriber, ok := c.Addresses[address.String()]; ok {
 		delete(c.Subscribers, subscriber.key)
 		delete(c.Addresses, subscriber.address.String())
 	}
+}
+
+// broadcast this carrier event to all on this channel
+// and always return to sender (who can ignore if they wise, or can use as net sidetone
+func (c *Channel) Broadcast(event bitoip.CarrierEventPayload, localAddress *net.UDPAddr) {
+	for _, v := range c.Subscribers {
+		// don't broadcast back to sender
+		bitoip.UDPTx(bitoip.CarrierEvent, event, v.address.String(), localAddress)
+	}
+
 }
 
 

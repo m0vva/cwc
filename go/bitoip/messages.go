@@ -41,12 +41,12 @@ type ListChannelsPayload struct {
 
 // TimeSync
 type TimeSyncPayload struct {
-	CurrentTime uint64
+	CurrentTime int64
 }
 
 type TimeSyncResponsePayload struct {
-	GivenTime uint64
-	CurrentTime uint64
+	GivenTime int64
+	CurrentTime int64
 }
 
 type ListenRequestPayload struct {
@@ -92,7 +92,7 @@ type CarrierBitEvent struct {
 type CarrierEventPayload struct {
 	Channel ChannelIdType
 	CarrierKey CarrierKeyType
-	StartTimeStamp uint64
+	StartTimeStamp int64
 	BitEvents [MaxBitEvents]CarrierBitEvent
 }
 
@@ -147,10 +147,11 @@ func DecodePacket(lineBuffer []byte) (MessageVerb, interface{}) {
 
 	}
 	buffer := bytes.NewReader(lineBuffer[1:])
+
 	if payloadObj != nil {
 		err := binary.Read(buffer, byteOrder, payloadObj)
 		if (err != nil) {
-			log.Fatalf("Error reading message for %d", verb)
+			log.Fatalf("Error reading message for %d, %v", verb, err)
 			return verb, nil
 		}
 	}

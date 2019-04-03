@@ -9,8 +9,8 @@ import (
 
 const maxBufferSize = 508
 
-func UDPRx(ctx context.Context, address string, handler func(MessageVerb, Payload, net.Addr)) {
-	pc, err := net.ListenPacket("udp", address)
+func UDPRx(ctx context.Context, address net.UDPAddr, handler func(MessageVerb, Payload, net.Addr)) {
+	pc, err := net.ListenPacket("udp", address.String())
 
 	if err != nil {
 		return

@@ -51,7 +51,7 @@ func TestTimeSyncResponse(t *testing.T) {
 	newVerb, newInt := DecodePacket(myBytes)
 
 	tsrp := newInt.(*TimeSyncResponsePayload)
-	assert.Equal(t, tsrp.GivenTime, uint64(0x01))
+	assert.Equal(t, tsrp.GivenTime, int64(0x01))
 	assert.Equal(t, newVerb, TimeSyncResponse)}
 
 func TestListenRequestPayload (t *testing.T) {
