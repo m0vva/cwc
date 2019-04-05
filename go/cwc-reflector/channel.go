@@ -73,7 +73,7 @@ func (c *Channel) Unsubscribe(address net.Addr) {
 }
 
 // broadcast this carrier event to all on this channel
-// and always return to sender (who can ignore if they wise, or can use as net sidetone
+// and always return to sender (who can ignore if they wish, or can use as net sidetone
 func (c *Channel) Broadcast(event bitoip.CarrierEventPayload, localAddress *net.UDPAddr) {
 	for _, v := range c.Subscribers {
 		// don't broadcast back to sender
