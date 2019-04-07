@@ -71,7 +71,10 @@ func Stop() {
 }
 
 func Startup() {
-	morseIO.Open()
+	err := morseIO.Open()
+	if err != nil {
+		log.Fatalf("Can't access GPIO: %s", err)
+	}
 }
 
 // Sample input a
@@ -86,7 +89,7 @@ func Sample(t time.Time) {
 			return
 		}
 	}
-	if t.Sub(events[0].startTime) >= DefaultSendWait {
+	if len(events)> 0 && t.Sub(events[0].startTime) >= DefaultSendWait {
 		Flush()
 	}
 }
@@ -94,6 +97,6 @@ func Sample(t time.Time) {
 
 // Flush events into an output stream
 func Flush() {
-	log.Println("Sending %v", events)
-	// TODO
+	log.Printf("Sending %v", events)
+	events = events[:0]
 }
