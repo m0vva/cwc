@@ -6,6 +6,7 @@ import (
 	"log"
 	"fmt"
 	"context"
+	"../cwc"
 )
 
 const maxBufferSize = 508
@@ -46,6 +47,7 @@ func StationClient(cqMode bool, addr string) {
 	// send using any channel
 	// rx all channels
 	// that's it
+	cwc.RunRx()
 
 	// Reflector mode
 	// opt: time sync with server
