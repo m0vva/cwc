@@ -1,11 +1,11 @@
 package main
 
 import (
-	"flag"
-	"net"
-	"log"
-	"fmt"
 	"context"
+	"flag"
+	"fmt"
+	"log"
+	"net"
 	"../cwc"
 )
 
@@ -17,48 +17,39 @@ func main() {
 	var refAddPtr = flag.String("ref", "cwc,nodestone.io:7388", "--ref=host:port")
 	var cqPtr = flag.Bool("cq", false, "--cq is CQ mode, no server, local broadcast")
 	var localPort = flag.Int("port", CqPort, "--port=<local-udp-port>")
+	var keyIn = flag.String("keyin", "17", "-keyin=17")
+	var keyOut = flag.String("keyout", "27", "-keyout=27")
+	var serialDevice = flag.String("serial", "", "-serial=<serial-device-name>")
 
 	flag.Parse()
 
+	// Mode and address
 	cqMode := *cqPtr
 	refAddress := *refAddPtr
 
+	// Morse Hardware
+	var morseIO cwc.IO
+
+	if len(*serialDevice) > 0 {
+		morseIO = &cwc.PiGPIO{}
+		morseIO.SetConfig("serialDevice", *serialDevice)
+	} else {
+		morseIO = &cwc.SerialIO{}
+	}
+	morseIO.SetConfig("keyIn", *keyIn)
+	morseIO.SetConfig("keyOut", *keyOut)
 
 	if (cqMode) {
 		mcAddress := fmt.Sprintf(LocalMulticast, *localPort)
 		log.Printf("Starting in CQ mode with local multicast address %s", mcAddress)
 
-		StationClient(true, mcAddress)
+		cwc.StationClient(true, mcAddress, morseIO)
 	} else {
 		log.Printf("Connecting to reflector %s", refAddress)
 
-		StationClient(false, refAddress)
+		cwc.StationClient(false, refAddress, morseIO)
 	}
 }
-
-// General client
-// Can be in CQ mode, in which case all is local muticast on the local network
-// Else the client of a reflector
-// CQ mode is really simple. Only really have to tx and rx carrier events
-func StationClient(cqMode bool, addr string) {
-	// CQ mode
-	// listen on mc address
-	// look for bit events and send them
-	// send using any channel
-	// rx all channels
-	// that's it
-	cwc.RunRx()
-
-	// Reflector mode
-	// opt: time sync with server
-	// opt: set callsign
-	// list channels
-	// suscribe channel(s)
-	// save carrier id
-
-
-}
-
 
 func ReflectorServer(ctx context.Context, address string) {
 	pc, err := net.ListenPacket("udp", address)

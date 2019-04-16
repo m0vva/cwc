@@ -4,7 +4,8 @@ package cwc
 // Can be in CQ mode, in which case all is local muticast on the local network
 // Else the client of a reflector
 // CQ mode is really simple. Only really have to tx and rx carrier events
-func StationClient(cqMode bool, addr string) {
+
+func StationClient(cqMode bool, addr string, morseIO IO) {
 	// CQ mode
 	// listen on mc address
 	// look for bit events and send them
@@ -12,6 +13,7 @@ func StationClient(cqMode bool, addr string) {
 	// rx all channels
 	// that's it
 
+	go RunRx(morseIO)
 
 
 

@@ -24,7 +24,7 @@ const MaxEvents = 100
 var TickTime = DefaultTickTime
 var SendWait = DefaultSendWait
 
-var LastBit byte = 0x00
+var LastBit byte = 0x01 // input is active high
 
 type Event struct {
 	startTime time.Time
@@ -44,9 +44,7 @@ func SetSendWait(sw time.Duration) {
 	SendWait = sw
 }
 
-var morseIO = PiGPIO{}
-
-func RunRx() {
+func RunRx(morseIO IO) {
 	LastBit = 0 // make sure turned off to begin -- the default state
 	ticker = time.NewTicker(TickTime)
 	Startup()
@@ -73,11 +71,11 @@ func Stop() {
 func Startup() {
 	err := morseIO.Open()
 	if err != nil {
-		log.Fatalf("Can't access GPIO: %s", err)
+		log.Fatalf("Can't access Morse hardware: %s", err)
 	}
 }
 
-// Sample input a
+// Sample input
 func Sample(t time.Time) {
 	bit := morseIO.Bit()
 	if bit != LastBit {
@@ -97,6 +95,26 @@ func Sample(t time.Time) {
 
 // Flush events into an output stream
 func Flush() {
-	log.Printf("Sending %v", events)
+	log.Printf("Flushing events %v", events)
+	if len(events) > 0 {
+		BuildPayload(events)
+	}
 	events = events[:0]
+}
+
+func BuildPayload(events []Event) bitoip.CarrierEventPayload {
+	baseTime := events[0].startTime.Unix()
+	cep := bitoip.CarrierEventPayload{
+		0,
+		0,
+		baseTime,
+		[bitoip.MaxBitEvents]bitoip.CarrierBitEvent{},
+	}
+	for i, event := range events {
+		cep.BitEvents[i] = bitoip.CarrierBitEvent{
+			uint32(event.startTime.Unix() - baseTime),
+			event.bitEvent,
+		}
+	}
+	return cep
 }

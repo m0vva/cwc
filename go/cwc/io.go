@@ -6,9 +6,9 @@ package cwc
  */
 
 type IO interface {
-	Open()
+	Open() error
 	SetConfig(string, string)
-	Config() ConfigMap
+	ConfigMap() ConfigMap
 	Bit() uint8
 	SetBit(bit0 uint8)
 	Close()

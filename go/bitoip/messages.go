@@ -8,7 +8,7 @@ import (
 	)
 
 // conservative UDP payload in bytes
-const MaxMessageSizeInBytes = 400
+const MaxMessageSizeInBytes = 200
 const CallsignSize = 16
 var byteOrder = binary.BigEndian
 
