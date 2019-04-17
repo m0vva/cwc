@@ -58,7 +58,7 @@ func RunRx(ctx context.Context, morseIO IO, toSend chan bitoip.CarrierEventPaylo
 			return
 
 		case t := <-ticker.C:
-			Sample(t)
+			Sample(t, toSend)
 		}
 	}
 }

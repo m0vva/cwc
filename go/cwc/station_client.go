@@ -1,6 +1,9 @@
 package cwc
 
-import "context"
+import (
+	"context"
+	"log"
+)
 import "../bitoip"
 
 // General client
@@ -20,14 +23,12 @@ func StationClient(ctx context.Context, cqMode bool, addr string, morseIO IO) {
 
 	go RunRx(ctx, morseIO, toSend)
 
-	var cep bitoip.CarrierEventPayload
-
 	for {
 		select {
 		case <- ctx.Done():
 			return
-		case cep <- toSend:
-
+		case cep := <- toSend:
+			log.Printf("carrier event payload to send: %v", cep)
 		}
 	}
 
