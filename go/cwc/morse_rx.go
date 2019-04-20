@@ -45,7 +45,7 @@ func SetSendWait(sw time.Duration) {
 	SendWait = sw
 }
 
-func RunRx(ctx context.Context, morseIO IO, toSend chan bitoip.CarrierEventPayload) {
+func RunMorseRx(ctx context.Context, morseIO IO, toSend chan bitoip.CarrierEventPayload) {
 	LastBit = false // make sure turned off to begin -- the default state
 	ticker = time.NewTicker(TickTime)
 
@@ -91,23 +91,24 @@ func Sample(t time.Time, toSend chan bitoip.CarrierEventPayload, morseIO IO) {
 		}
 		events = append(events, Event{t, bitoip.BitEvent(bit) })
 		if  len(events) >= MaxEvents {
-			Flush(toSend)
+			events = Flush(events, toSend)
 			return
 		}
 	}
 	if len(events)> 0 && t.Sub(events[0].startTime) >= DefaultSendWait {
-		Flush(toSend)
+		events = Flush(events, toSend)
 	}
 }
 
 
 // Flush events into an output stream
-func Flush(toSend chan bitoip.CarrierEventPayload) {
+func Flush(events []Event, toSend chan bitoip.CarrierEventPayload) []Event {
 	log.Printf("Flushing events %v", events)
 	if len(events) > 0 {
 		toSend <- BuildPayload(events)
 		events = events[:0]
 	}
+	return events
 }
 
 func BuildPayload(events []Event) bitoip.CarrierEventPayload {

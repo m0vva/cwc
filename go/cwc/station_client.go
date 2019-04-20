@@ -3,6 +3,7 @@ package cwc
 import (
 	"context"
 	"log"
+	"net"
 )
 import "../bitoip"
 
@@ -15,7 +16,7 @@ func StationClient(ctx context.Context, cqMode bool, addr string, morseIO IO) {
 
 	// if talking to reflector, do some setup
 	if !cqMode {
-		// TODO:
+		// TODO: full reflector mode implementation
 		// Reflector mode setup
 		// 1/ time sync with server
 		// 2/ set callsign
@@ -23,33 +24,33 @@ func StationClient(ctx context.Context, cqMode bool, addr string, morseIO IO) {
 		// 4/ suscribe channel(s)
 		// 5/ save carrier id
 	}
+	resolvedAddress, err := net.ResolveUDPAddr("udp", addr)
 
+	if err != nil {
+		log.Printf("Error resolving address %s %v", addr, err)
+		return
+	}
 	toSend := make(chan bitoip.CarrierEventPayload)
+	toMorse := make(chan bitoip.RxMSG)
 
-	go RunRx(ctx, morseIO, toSend)
+	// Morse receiver
+	go RunMorseRx(ctx, morseIO, toSend)
+
+	// UDP Receiver
+	go bitoip.UDPRx(ctx, *resolvedAddress, toMorse)
 
 	for {
 		select {
 		case <- ctx.Done():
 			return
+
 		case cep := <- toSend:
 			log.Printf("carrier event payload to send: %v", cep)
 			// TODO fill in some channel details
 			bitoip.UDPTx(bitoip.CarrierEvent, cep, addr,nil)
-		}
-	}
-
-	toMorse := make(chan bitoip.CarrierEventPayload)
-
-	go bitoip.UDPRx(ctx, addr, toMorse)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
 
 		case tm := <- toMorse:
-			log.Printf("carrier events to morse: %v", toMorse)
+			log.Printf("carrier events to morse: %v", tm)
 
 		}
 	}
