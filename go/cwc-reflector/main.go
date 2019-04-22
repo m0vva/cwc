@@ -30,7 +30,7 @@ func ReflectorServer(ctx context.Context, address string) {
 
 	messages := make(chan bitoip.RxMSG)
 
-	bitoip.UDPRx(ctx, *serverAddress, messages)
+	go bitoip.UDPRx(ctx, serverAddress, messages)
 
 	for {
 		select {

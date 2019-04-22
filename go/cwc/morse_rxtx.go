@@ -21,7 +21,7 @@ import "../bitoip"
 const Ms = int64(1e6)
 const Us = int64(1000)
 const DefaultTickTime = time.Duration(5 * Ms)
-const MaxSendTimespan = time.Duration(4000 * Ms)
+const MaxSendTimespan = time.Duration(2000 * Ms)
 const BreakinTime = time.Duration(300 * Ms)
 const MaxEvents = 100
 
@@ -36,6 +36,7 @@ type Event struct {
 }
 
 var events = make([]Event, 0, MaxEvents)
+var RxMutex = sync.Mutex{}
 
 var ticker *time.Ticker
 var done = make(chan bool)
@@ -95,7 +96,9 @@ func Sample(t time.Time, toSend chan bitoip.CarrierEventPayload, morseIO IO) {
 		if rxBit {
 			bit = 1
 		}
+		RxMutex.Lock()
 		events = append(events, Event{t, bitoip.BitEvent(bit) })
+		RxMutex.Unlock()
 		if  len(events) >= MaxEvents {
 			events = Flush(events, toSend)
 			return
@@ -111,10 +114,12 @@ func Sample(t time.Time, toSend chan bitoip.CarrierEventPayload, morseIO IO) {
 // Flush events into an output stream
 func Flush(events []Event, toSend chan bitoip.CarrierEventPayload) []Event {
 	log.Printf("Flushing events %v", events)
+	RxMutex.Lock()
 	if len(events) > 0 {
 		toSend <- BuildPayload(events)
 		events = events[:0]
 	}
+	RxMutex.Unlock()
 	return events
 }
 
@@ -125,6 +130,7 @@ func BuildPayload(events []Event) bitoip.CarrierEventPayload {
 		0,
 		baseTime,
 		[bitoip.MaxBitEvents]bitoip.CarrierBitEvent{},
+		time.Now().UnixNano(),
 	}
 	for i, event := range events {
 		bit := event.bitEvent
@@ -152,7 +158,7 @@ var TxQueue = make([]Event, 100)
 
 // Queue this stuff for sending... Basically add to queue
 // that will be sent out based on the tick timing
-func QueueForTransmit(carrierEvents bitoip.CarrierEventPayload) {
+func QueueForTransmit(carrierEvents *bitoip.CarrierEventPayload) {
 	// compose into events
 	newEvents := make([]Event, 1)
 	//start := time.Unix(0, carrierEvents.StartTimeStamp)

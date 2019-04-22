@@ -2,6 +2,7 @@ package main
 
 import (
 	"../bitoip"
+	"log"
 	"net"
 )
 /**
@@ -14,21 +15,21 @@ func Handler(serverAddress *net.UDPAddr, msg bitoip.RxMSG) {
 		copy(responsePayload.Channels[:], ChannelIds())
 		bitoip.UDPTx(bitoip.ListChannels,
 					 msg.Payload,
-					 msg.SrcAddress.String(),
-					 serverAddress)
+					 &msg.SrcAddress)
 
 	case bitoip.CarrierEvent:
-		ce := msg.Payload.(bitoip.CarrierEventPayload)
+		ce := msg.Payload.(*bitoip.CarrierEventPayload)
+		log.Printf("got carrier event %v", ce)
 		channel := GetChannel(ce.Channel)
 		channel.Subscribe(msg.SrcAddress) //make sure this user subscribed
-		channel.Broadcast(ce, serverAddress)
+		channel.Broadcast(*ce)
 
 	case bitoip.ListenRequest:
-		lr := msg.Payload.(bitoip.ListenRequestPayload)
+		lr := msg.Payload.(*bitoip.ListenRequestPayload)
 		channel := GetChannel(lr.Channel)
 		key := channel.Subscribe(msg.SrcAddress)
 		lcp := bitoip.ListenConfirmPayload{lr.Channel, key}
 
-		bitoip.UDPTx(bitoip.ListenConfirm, lcp, msg.SrcAddress.String(), serverAddress)
+		bitoip.UDPTx(bitoip.ListenConfirm, lcp, &msg.SrcAddress)
 	}
 }
