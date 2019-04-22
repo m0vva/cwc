@@ -48,10 +48,11 @@ func StationClient(ctx context.Context, cqMode bool, addr string, morseIO IO) {
 			log.Printf("carrier event payload to send: %v", cep)
 			// TODO fill in some channel details
 			bitoip.UDPTx(bitoip.CarrierEvent, cep, addr,nil)
+			QueueForTransmit(cep)
 
 		case tm := <- toMorse:
 			log.Printf("carrier events to morse: %v", tm)
-
+			QueueForTransmit(tm.Payload.(bitoip.CarrierEventPayload))
 		}
 	}
 }

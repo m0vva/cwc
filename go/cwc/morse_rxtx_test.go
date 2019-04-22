@@ -48,3 +48,4 @@ func TestFlushMultipleEvents(t *testing.T) {
 	assert.Equal(t, cbe.StartTimeStamp, t1.Unix())
 	assert.Equal(t, len(cbe.BitEvents), 37)
 }
+
