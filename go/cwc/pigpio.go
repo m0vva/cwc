@@ -80,14 +80,14 @@ func (g *PiGPIO) Bit() bool {
 func (g *PiGPIO) SetBit(bit0 bool) {
 	if bit0 {
 		g.output.High()
-		g.SetPwm(true)
+		g.SetToneOut(true)
 	} else {
 		g.output.Low()
-		g.SetPwm(false)
+		g.SetToneOut(false)
 	}
 }
 
-func (g *  PiGPIO) SetPwm(v bool) {
+func (g *  PiGPIO) SetToneOut(v bool) {
 	if g.pwm {
 		var dutyLen uint32
 
