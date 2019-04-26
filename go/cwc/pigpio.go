@@ -38,7 +38,7 @@ func (g *PiGPIO) Open() error {
 		log.Fatalf("Bad sidetone frequency")
 	}
 
-	glog.Info("setting sidetone to %d", sFreq)
+	glog.Infof("setting sidetone to %d", sFreq)
 
 	// PCM output
 	if (sFreq > 0) {
