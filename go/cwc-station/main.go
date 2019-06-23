@@ -97,4 +97,5 @@ func main() {
 	}
 
 	cwc.StationClient(ctx, config, morseIO)
+	WebServer(ctx, config)
 }
